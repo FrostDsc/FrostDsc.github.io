@@ -4,16 +4,21 @@
   <meta charset="utf-8">
   
   
-  <title>test | Hexo</title>
+  <title>在 M 芯片 Mac 上配置 PyTorch MPS 加速 | Hexo</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-  <meta property="og:type" content="article">
-<meta property="og:title" content="test">
-<meta property="og:url" content="http://example.com/2026/01/19/test/index.html">
+  <meta name="description" content="最近入手了 M 芯片的 Mac，打算用它来跑一些深度学习的小 Demo。本文记录了如何调用 Metal Performance Shaders (MPS) 进行加速。 背景对于统计学专业的学生来说，本地跑模型是家常便饭。相比于 TensorFlow，我个人更偏好 PyTorch 的动态图机制。 数学原理回顾在进行张量运算前，我们简单回顾一下常用的正态分布概率密度函数： $$f(x) &#x3D;">
+<meta property="og:type" content="article">
+<meta property="og:title" content="在 M 芯片 Mac 上配置 PyTorch MPS 加速">
+<meta property="og:url" content="http://example.com/2026/01/24/pytorch-mps-test/index.html">
 <meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="最近入手了 M 芯片的 Mac，打算用它来跑一些深度学习的小 Demo。本文记录了如何调用 Metal Performance Shaders (MPS) 进行加速。 背景对于统计学专业的学生来说，本地跑模型是家常便饭。相比于 TensorFlow，我个人更偏好 PyTorch 的动态图机制。 数学原理回顾在进行张量运算前，我们简单回顾一下常用的正态分布概率密度函数： $$f(x) &#x3D;">
 <meta property="og:locale" content="en_US">
-<meta property="article:published_time" content="2026-01-19T13:38:43.000Z">
-<meta property="article:modified_time" content="2026-01-19T13:38:43.704Z">
+<meta property="article:published_time" content="2026-01-24T10:30:00.000Z">
+<meta property="article:modified_time" content="2026-01-24T16:47:51.498Z">
 <meta property="article:author" content="John Doe">
+<meta property="article:tag" content="PyTorch">
+<meta property="article:tag" content="Deep Learning">
+<meta property="article:tag" content="Mac">
 <meta name="twitter:card" content="summary">
   
     <link rel="alternate" href="/atom.xml" title="Hexo" type="application/atom+xml">
@@ -71,12 +76,16 @@
 </header>
 
       <div class="outer">
-        <section id="main"><article id="post-test" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
+        <section id="main"><article id="post-pytorch-mps-test" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
   <div class="article-meta">
-    <a href="/2026/01/19/test/" class="article-date">
-  <time class="dt-published" datetime="2026-01-19T13:38:43.000Z" itemprop="datePublished">2026-01-19</time>
+    <a href="/2026/01/24/pytorch-mps-test/" class="article-date">
+  <time class="dt-published" datetime="2026-01-24T10:30:00.000Z" itemprop="datePublished">2026-01-24</time>
 </a>
     
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0%E5%AE%9E%E8%B7%B5/">机器学习实践</a>
+  </div>
+
   </div>
   <div class="article-inner">
     
@@ -85,7 +94,7 @@
         
   
     <h1 class="p-name article-title" itemprop="headline name">
-      test
+      在 M 芯片 Mac 上配置 PyTorch MPS 加速
     </h1>
   
 
@@ -93,33 +102,56 @@
     
     <div class="e-content article-entry" itemprop="articleBody">
       
-        
+        <p>最近入手了 M 芯片的 Mac，打算用它来跑一些深度学习的小 Demo。本文记录了如何调用 Metal Performance Shaders (MPS) 进行加速。</p>
+<h2 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h2><p>对于统计学专业的学生来说，本地跑模型是家常便饭。相比于 TensorFlow，我个人更偏好 <strong>PyTorch</strong> 的动态图机制。</p>
+<h2 id="数学原理回顾"><a href="#数学原理回顾" class="headerlink" title="数学原理回顾"></a>数学原理回顾</h2><p>在进行张量运算前，我们简单回顾一下常用的正态分布概率密度函数：</p>
+<p>$$<br>f(x) &#x3D; \frac{1}{\sigma\sqrt{2\pi}} e^{-\frac{(x-\mu)^2}{2\sigma^2}}<br>$$</p>
+<p><em>（注：如果你还没有配置 MathJax，上面的公式可能显示为源码）</em></p>
+<h2 id="代码实现"><a href="#代码实现" class="headerlink" title="代码实现"></a>代码实现</h2><p>下面是一段测试代码，用于验证 MPS 是否调用成功：</p>
+<pre><code class="python">import torch
+import time
+
+# 检查设备
+def get_device():
+    if torch.backends.mps.is_available():
+        return torch.device(&quot;mps&quot;)
+    elif torch.cuda.is_available():
+        return torch.device(&quot;cuda&quot;)
+    else:
+        return torch.device(&quot;cpu&quot;)
+
+device = get_device()
+print(f&quot;当前使用的设备: &#123;device&#125;&quot;)
+
+# 创建随机张量
+x = torch.randn(5000, 5000, device=device)
+y = torch.randn(5000, 5000, device=device)
+
+# 矩阵乘法测试
+start_time = time.time()
+z = torch.matmul(x, y)
+print(f&quot;耗时: &#123;time.time() - start_time:.4f&#125; 秒&quot;)
+</code></pre>
+
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://example.com/2026/01/19/test/" data-id="cmks5qllp000133vs9enxc9x9" data-title="test" class="article-share-link"><span class="fa fa-share">Share</span></a>
+      <a data-url="http://example.com/2026/01/24/pytorch-mps-test/" data-id="cmksjned800009vvsbe24cgsh" data-title="在 M 芯片 Mac 上配置 PyTorch MPS 加速" class="article-share-link"><span class="fa fa-share">Share</span></a>
       
       
       
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Deep-Learning/" rel="tag">Deep Learning</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Mac/" rel="tag">Mac</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/PyTorch/" rel="tag">PyTorch</a></li></ul>
+
     </footer>
   </div>
   
     
 <nav id="article-nav">
   
-    <a href="/2026/01/24/pytorch-mps-test/" id="article-nav-newer" class="article-nav-link-wrap">
-      <strong class="article-nav-caption">Newer</strong>
-      <div class="article-nav-title">
-        
-          在 M 芯片 Mac 上配置 PyTorch MPS 加速
-        
-      </div>
-    </a>
   
-  
-    <a href="/2026/01/19/hello-world/" id="article-nav-older" class="article-nav-link-wrap">
+    <a href="/2026/01/19/test/" id="article-nav-older" class="article-nav-link-wrap">
       <strong class="article-nav-caption">Older</strong>
-      <div class="article-nav-title">Hello World</div>
+      <div class="article-nav-title">test</div>
     </a>
   
 </nav>
